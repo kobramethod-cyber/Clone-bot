@@ -1,0 +1,7 @@
+python-telegram-bot
+motor
+pymongo
+qrcode
+Pillow
+flask
+dnspython
