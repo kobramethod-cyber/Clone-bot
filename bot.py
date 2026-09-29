@@ -58,7 +58,8 @@ DEFAULT_SETTINGS = {
         "⌛ Validity: Lifetime\n\n"
         "───────────────────\n\n"
         "💳 <b>AVAILABLE PAYMENT METHODS</b>\n"
-        "• Paytm / PhonePe / GPay / Any UPI App\n"
+        "• UPI / GPay / PhonePe / Paytm\n"
+        "• Binance / PayPal (Accepted)\n"
         "• Scan QR Code OR Copy UPI ID Below:\n\n"
         "UPI ID: <code>{upi_id}</code>\n\n"
         "⚠️ <b>AFTER PAYMENT:</b>\n"
@@ -338,7 +339,7 @@ async def button_router(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
         ]
         text = (
             "💳 <b>PAYMENT METHOD SETTINGS</b>\n\n"
-            "Here you can set the Payment Photo/QR Image and the Payment Text shown to users when they click Buy."
+            "Here you can set the Payment Photo/QR Image (supporting Binance, PayPal, UPI QR, etc.) and the Payment Text shown to users when they click Buy."
         )
         if query.message.photo:
             await query.message.edit_caption(caption=text, reply_markup=InlineKeyboardMarkup(kb), parse_mode=ParseMode.HTML)
@@ -349,14 +350,15 @@ async def button_router(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     elif query.data == "set_payment_photo_act":
         if not await is_admin(user.id):
             return ConversationHandler.END
-        await query.message.reply_text("🖼 Please send the Photo/QR Code image for Payment Options:")
+        await query.message.reply_text("🖼 Please send the Photo/QR Code image for Payment Options (Multiple payment methods image/QR):")
         return SETTING_PAYMENT_PHOTO
 
     elif query.data == "set_payment_text_act":
         if not await is_admin(user.id):
             return ConversationHandler.END
         await query.message.reply_text(
-            "📝 Send the new Payment Text/Caption.\nAvailable Tags: <code>{product_name}</code>, <code>{price}</code>, <code>{upi_id}</code>"
+            "📝 Send the new Payment Text/Caption.\nAvailable Tags: <code>{product_name}</code>, <code>{price}</code>, <code>{upi_id}</code>\n\n"
+            "You can list Binance, PayPal, UPI, etc. details here."
         )
         return SETTING_PAYMENT_TEXT
 
@@ -421,7 +423,7 @@ async def button_router(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
                 caption=(
                     "🎥 How To Buy\n\n"
                     "1️⃣ Click Buy Premium\n\n"
-                    "2️⃣ Pay via QR/UPI/Payment Method\n\n"
+                    "2️⃣ Pay via UPI, Binance, PayPal or QR Code\n\n"
                     "3️⃣ Send Payment Screenshot\n\n"
                     "4️⃣ Wait For Verification\n\n"
                     "5️⃣ Get Instant Access Links ✅\n\n"
@@ -524,8 +526,8 @@ async def button_router(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
         await query.message.reply_text(
             "📦 Send product details in this format:\n\n"
             "<code>Product Name | Price | Links</code>\n\n"
-            "<b>Example (Multiple links support):</b>\n"
-            "<code>VIP Mega Pack | 99 | Zip Link: https://mega.nz/file1\nTG Link: https://t.me/xyz</code>",
+            "<b>Example (Multiple links support like Zip & Mega & TG):</b>\n"
+            "<code>VIP Mega Pack | 99 | Zip: https://mega.nz/file1\nMega: https://mega.nz/file2\nTG: https://t.me/xyz</code>",
             parse_mode=ParseMode.HTML
         )
         return ADDING_PRODUCT
@@ -573,9 +575,9 @@ async def button_router(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
             kb.append([InlineKeyboardButton(f"✏️ {p.get('name')}", callback_data=f"editprod_{p.get('product_id')}")])
         kb.append([InlineKeyboardButton("🔙 Back to Panel", callback_data="admin_panel")])
         if query.message.photo:
-            await query.message.edit_caption(caption="✏️ Select product to edit/modify name, price, or links:", reply_markup=InlineKeyboardMarkup(kb), parse_mode=ParseMode.HTML)
+            await query.message.edit_caption(caption="✏️ Select product to edit/modify name, price, or multiple links:", reply_markup=InlineKeyboardMarkup(kb), parse_mode=ParseMode.HTML)
         else:
-            await query.message.edit_text(text="✏️ Select product to edit/modify name, price, or links:", reply_markup=InlineKeyboardMarkup(kb), parse_mode=ParseMode.HTML)
+            await query.message.edit_text(text="✏️ Select product to edit/modify name, price, or multiple links:", reply_markup=InlineKeyboardMarkup(kb), parse_mode=ParseMode.HTML)
         return ConversationHandler.END
 
     elif query.data.startswith("editprod_"):
@@ -625,7 +627,7 @@ async def admin_set_payment_photo_receive(update: Update, context: ContextTypes.
     if not await is_admin(update.message.from_user.id):
         return ConversationHandler.END
     if not update.message.photo:
-        await update.message.reply_text("⚠️ Please send a valid photo/QR image.")
+        await update.message.reply_text("⚠️ Please send a valid photo.")
         return SETTING_PAYMENT_PHOTO
 
     file_id = update.message.photo[-1].file_id
@@ -634,7 +636,7 @@ async def admin_set_payment_photo_receive(update: Update, context: ContextTypes.
         {"$set": {"key": "payment_photo", "file_id": file_id}},
         upsert=True
     )
-    await update.message.reply_text("✅ Payment QR/Photo updated successfully!")
+    await update.message.reply_text("✅ Payment Method Photo/QR updated successfully!")
     return ConversationHandler.END
 
 
@@ -643,7 +645,7 @@ async def admin_set_payment_text_receive(update: Update, context: ContextTypes.D
         return ConversationHandler.END
     new_text = update.message.text.strip()
     await set_setting("payment_text", new_text)
-    await update.message.reply_text("✅ Payment Text/Caption updated successfully!")
+    await update.message.reply_text("✅ Payment Method Text/Caption updated successfully!")
     return ConversationHandler.END
 
 
@@ -774,7 +776,7 @@ async def add_product_receive(update: Update, context: ContextTypes.DEFAULT_TYPE
         "price": price,
         "group_link": link
     })
-    await update.message.reply_text(f"✅ Product '{name}' with links added successfully!")
+    await update.message.reply_text(f"✅ Product '{name}' with multiple links added successfully!")
     return ConversationHandler.END
 
 
